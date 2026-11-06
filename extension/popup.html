@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Google AI Mode API</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <span class="dot" id="status-dot"></span>
+      <h1>Google AI Mode API</h1>
+    </div>
+    <p class="subtitle" id="connection-label">Checking…</p>
+  </header>
+
+  <section class="status-grid" aria-label="Status">
+    <div class="status-item">
+      <span class="status-label">Backend</span>
+      <span class="status-value" id="backend-status">–</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Extension</span>
+      <span class="status-value" id="extension-status">–</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">AI Mode tab</span>
+      <span class="status-value" id="tab-status">–</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Google login</span>
+      <span class="status-value" id="login-status">–</span>
+    </div>
+  </section>
+
+  <section class="settings">
+    <label for="backend-url">Backend URL</label>
+    <input type="text" id="backend-url" placeholder="http://127.0.0.1:8000" spellcheck="false">
+
+    <label for="pairing-token">Pairing token</label>
+    <input type="password" id="pairing-token" placeholder="Paste the token from the backend log" spellcheck="false">
+
+    <label class="checkbox">
+      <input type="checkbox" id="auto-connect">
+      <span>Connect automatically</span>
+    </label>
+  </section>
+
+  <div class="actions">
+    <button id="save-button" class="primary">Save &amp; Connect</button>
+    <button id="reconnect-button" class="secondary">Reconnect</button>
+    <button id="open-button" class="secondary">Open AI Mode</button>
+  </div>
+
+  <p class="hint" id="hint">
+    Sign in to Google in the AI Mode tab, then keep it open. Requests are
+    answered by Google AI Mode in your own browser session.
+  </p>
+
+  <script src="popup.js"></script>
+</body>
+</html>

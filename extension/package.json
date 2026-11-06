@@ -1,0 +1,12 @@
+{
+  "name": "google-ai-mode-api-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome extension (MV3) that bridges Google AI Mode to the Google AI Mode API backend.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.5"
+  }
+}

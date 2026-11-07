@@ -1,0 +1,25 @@
+{
+  "name": "google-ai-mode-playground",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Frontend playground for the Google AI Mode API.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "lucide-react": "^1.70.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.4",
+    "@vitejs/plugin-react": "^6.2.1",
+    "oxlint": "^1.90.0",
+    "tailwindcss": "^4.3.4",
+    "vite": "^8.3.6"
+  }
+}

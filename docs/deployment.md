@@ -52,6 +52,38 @@ cannot drive a browser it has no connection to.
 
 No inbound firewall rule, no public IP, TLS is automatic.
 
+### 3.0 Quick tunnels (fastest, no account)
+
+A **quick tunnel** gives you a public `*.trycloudflare.com` URL in seconds and
+needs no Cloudflare account.  The repository ships a helper that starts both
+tunnels, builds the playground against the public API and updates CORS:
+
+```powershell
+# the backend must already be running on :8000
+.\scripts\publish.ps1              # API + playground UI
+.\scripts\publish.ps1 -ApiOnly     # API only
+.\scripts\publish.ps1 -Stop        # stop both tunnels
+```
+
+It prints two URLs:
+
+```
+  Public API : https://<random>.trycloudflare.com
+  Public UI  : https://<random>.trycloudflare.com
+  Swagger UI : https://<random>.trycloudflare.com/docs
+```
+
+> Quick tunnel hostnames **change on every restart**.  They are fine for a
+> demo; use a named tunnel for a permanent address.
+
+To do it by hand:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8000
+```
+
+The URL appears in the log after the "Registered tunnel connection" line.
+
 ### 3.1 Install cloudflared
 
 ```bash
@@ -105,6 +137,28 @@ The extension converts `https://` to `wss://` automatically.
 
 > The popup requests the backend origin as an **optional** host permission
 > when you press **Save & Connect**, so no manifest edit is required.
+
+### 3.6 Publish the playground as well
+
+```bash
+cd frontend
+VITE_API_BASE_URL=https://gaim-api.example.com npm run build
+npm run preview          # serves the build on :4173
+```
+
+Then add a second hostname to the same tunnel so the UI is reachable too:
+
+```yaml
+ingress:
+  - hostname: gaim-api.example.com
+    service: http://127.0.0.1:8000
+  - hostname: gaim-ui.example.com
+    service: http://127.0.0.1:4173
+  - service: http_status:404
+```
+
+Add **both** hostnames to `CORS_ORIGINS` in `backend/.env` — the browser
+blocks a cross-origin request whose origin is not on the list.
 
 ---
 

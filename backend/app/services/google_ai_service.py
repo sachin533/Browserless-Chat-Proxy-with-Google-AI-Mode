@@ -181,10 +181,11 @@ class GoogleAIService:
         *,
         model: str = "google-ai-mode",
         timeout: float | None = None,
+        request_id: str | None = None,
     ) -> CompletionResult:
         """Execute a prompt and return the complete answer."""
         timeout = timeout if timeout is not None else self._settings.request_timeout_seconds
-        request_id = self._requests.new_request_id()
+        request_id = request_id or self._requests.new_request_id()
         answer_parts: list[str] = []
         final: FinalEvent | None = None
 
@@ -220,10 +221,11 @@ class GoogleAIService:
         *,
         model: str = "google-ai-mode",
         timeout: float | None = None,
+        request_id: str | None = None,
     ) -> AsyncIterator[StreamEvent]:
         """Execute a prompt and yield incremental events as they arrive."""
         timeout = timeout if timeout is not None else self._settings.request_timeout_seconds
-        request_id = self._requests.new_request_id()
+        request_id = request_id or self._requests.new_request_id()
         async for event in self._execute(
             prompt, model=model, timeout=timeout, request_id=request_id
         ):

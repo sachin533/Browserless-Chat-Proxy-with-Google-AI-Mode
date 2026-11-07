@@ -72,21 +72,26 @@ async def chat_completions(
             param="messages",
         )
 
+    # The request id is created here so that it can be exposed as a response
+    # header in both the streaming and the non streaming mode.
+    request_id = request.app.state.request_manager.new_request_id()
+
     if body.stream:
         # Validate the browser preconditions *before* the response starts so
         # that failures are reported with a proper HTTP status code.
         service.ensure_ready()
         return StreamingResponse(
-            _stream_response(service, body, prompt),
+            _stream_response(service, body, prompt, request_id),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
                 "X-Accel-Buffering": "no",
+                "X-Google-AI-Mode-Request-Id": request_id,
             },
         )
 
-    result = await service.complete(prompt, model=body.model)
+    result = await service.complete(prompt, model=body.model, request_id=request_id)
 
     response = ChatCompletionResponse(
         id=f"chatcmpl-{result.request_id.replace('req_', '')}",
@@ -112,7 +117,7 @@ async def chat_completions(
 
 
 async def _stream_response(
-    service: Any, body: ChatCompletionRequest, prompt: str
+    service: Any, body: ChatCompletionRequest, prompt: str, request_id: str
 ) -> AsyncIterator[str]:
     """Emit OpenAI compatible SSE chunks for a streamed answer."""
     completion_id = f"chatcmpl-{uuid.uuid4().hex}"
@@ -132,7 +137,7 @@ async def _stream_response(
 
     finished = False
     try:
-        async for event in service.stream(prompt, model=model):
+        async for event in service.stream(prompt, model=model, request_id=request_id):
             if isinstance(event, DeltaEvent):
                 if event.text:
                     yield chunk({"content": event.text})

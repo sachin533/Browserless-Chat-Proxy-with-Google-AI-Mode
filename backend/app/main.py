@@ -150,7 +150,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_credentials=settings.cors_allow_credentials,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
-        expose_headers=["X-Request-Id", "X-Google-AI-Mode-Request-Id"],
+        # The provenance headers must be exposed explicitly, otherwise a
+        # browser cannot read them from a cross origin response.
+        expose_headers=[
+            "X-Request-Id",
+            "X-Google-AI-Mode-Request-Id",
+            "X-Google-AI-Mode-Source",
+            "X-Google-AI-Mode-Duration-Ms",
+        ],
     )
 
     _register_exception_handlers(app)

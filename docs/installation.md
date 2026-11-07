@@ -71,6 +71,14 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 Leave `EXTENSION_PAIRING_TOKEN` empty and the backend will generate one on
 the first start, write it back into `.env` and print it to the log.
 
+> **CORS** — the frontend dev server runs on `http://127.0.0.1:5173`.  That
+> origin is part of the default `CORS_ORIGINS`; if you changed that list, add
+> the frontend origin or the browser will block the requests:
+
+> ```ini
+> CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+> ```
+
 ### 2.4 Start the backend
 
 ```bash
@@ -250,7 +258,68 @@ cd backend
 cd extension
 npm install
 npm test
+
+# Frontend (lint + production build)
+cd frontend
+npm install
+npm run lint
+npm run build
 ```
+
+---
+
+## 8b. The chat playground (frontend)
+
+The playground is a separate Vite application that talks to the same public
+API as any other client.
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local      # Windows: copy .env.example .env.local
+npm run dev
+```
+
+Open **<http://127.0.0.1:5173/>**.
+
+`frontend/.env.local`:
+
+```ini
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_MODEL=google-ai-mode
+VITE_STATUS_POLL_MS=5000
+VITE_ENABLE_STREAMING=true
+```
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://127.0.0.1:8000` | Backend base URL |
+| `VITE_MODEL` | `google-ai-mode` | Model name sent with each request |
+| `VITE_STATUS_POLL_MS` | `5000` | Poll interval for the status indicators |
+| `VITE_ENABLE_STREAMING` | `true` | `false` disables Server-Sent Events |
+
+> The frontend never contains a secret.  When the backend runs with
+> `REQUIRE_API_KEY=true`, open **Settings** (gear icon in the header) and
+> paste the key — it is kept in `sessionStorage` for the current browser
+> session and is sent as the `X-API-Key` header.
+
+### Playground checklist
+
+| # | Step | Expected result |
+|---|---|---|
+| 1 | Start the backend and the frontend | The page loads, no console errors |
+| 2 | Click the four status dots in the header | A panel with Backend / Extension / AI Mode tab / Login details |
+| 3 | Extension not connected | The extension dot is grey or red, a hint above the composer explains what to do |
+| 4 | AI Mode tab open, signed out | The login dot is red |
+| 5 | Everything ready | All four dots are green |
+| 6 | Click an example card | The prompt is sent and the answer appears |
+| 7 | Type a prompt and press Enter | The answer streams in and renders as Markdown |
+| 8 | Send an empty prompt | The send button stays disabled |
+| 9 | Open the inspector (panel icon) | Endpoint, method, model, duration, request id, source URL and a cURL command |
+| 10 | Collapse the sidebar | A slim icon rail appears; the expand button restores it |
+| 11 | Rename / delete a conversation | The title changes, the conversation disappears |
+| 12 | Stop the backend | The backend dot turns red, requests fail with a clear message |
+| 13 | Click **Retry** on a failed message | The failed exchange is replaced by a new attempt |
 
 ---
 

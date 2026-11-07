@@ -102,8 +102,13 @@ WebSockets, asyncio, python-dotenv, pytest, httpx.
 scripts, `chrome.runtime` messaging, `chrome.tabs`, `chrome.scripting`,
 `chrome.storage`, `chrome.alarms`, native WebSocket API.
 
+**Frontend** — React 19, Vite 8, Tailwind CSS 4, lucide-react. A chat
+playground that drives the backend over HTTP and renders the real Google AI
+Mode answers.
+
 **Testing** — pytest + FastAPI `TestClient`/`httpx.ASGITransport` for the
-backend, `node --test` for the extension.
+backend, `node --test` for the extension, `oxlint` + `vite build` for the
+frontend.
 
 ---
 
@@ -150,6 +155,36 @@ google-ai-mode-api/
 │   ├── tools/generate_icons.py
 │   ├── tests/                          # 48 node:test tests
 │   └── package.json
+├── frontend/
+│   ├── index.html
+│   ├── vite.config.js                  # Vite + React + Tailwind v4
+│   ├── package.json
+│   ├── .env.example                    # VITE_API_BASE_URL, VITE_MODEL, …
+│   └── src/
+│       ├── main.jsx                    # entry point + error boundary
+│       ├── App.jsx                     # layout, state, actions
+│       ├── index.css                   # Tailwind theme + animations
+│       ├── api/client.js               # the only place that knows the API
+│       ├── hooks/
+│       │   ├── useConnection.js        # polls /health + /api/extension/status
+│       │   ├── useConversations.js     # history + rename + localStorage
+│       │   ├── useChat.js              # send / stream / retry / cancel
+│       │   └── useAppSettings.js       # runtime base URL, model, API key
+│       └── components/
+│           ├── Sidebar.jsx             # history, search, rename, collapsed rail
+│           ├── ChatHeader.jsx          # title + compact status indicator
+│           ├── StatusIndicator.jsx     # four live dots + detail popover
+│           ├── MessageList.jsx         # 850px reading column
+│           ├── MessageBubble.jsx       # user / assistant / error bubbles
+│           ├── Markdown.jsx            # dependency free Markdown renderer
+│           ├── Composer.jsx            # prompt input + send + stop
+│           ├── InspectorDrawer.jsx     # slide-over request inspector
+│           ├── ApiInfoPanel.jsx        # request details + cURL
+│           ├── SettingsPanel.jsx       # base URL, model, key, diagnostics
+│           ├── Logo.jsx                # inline SVG brand mark
+│           ├── EmptyState.jsx          # welcome screen + example cards
+│           ├── ToastHost.jsx           # transient notifications
+│           └── ErrorBoundary.jsx       # keeps a render fault from blanking the page
 ├── docs/
 │   ├── architecture.md
 │   ├── installation.md
@@ -164,8 +199,8 @@ google-ai-mode-api/
 
 ## Installation
 
-Prerequisites: **Python 3.12+**, **Node 18+** (only for the extension tests),
-and **Chrome 116+**.
+Prerequisites: **Python 3.12+**, **Node 18+** (for the extension and frontend
+tooling), and **Chrome 116+**.
 
 ### 1. Backend
 
@@ -197,6 +232,34 @@ cd extension
 npm install          # optional: only needed to run the extension unit tests
 ```
 
+### 3. Frontend
+
+```powershell
+cd frontend
+npm install
+copy .env.example .env.local          # Windows
+# cp .env.example .env.local          # macOS / Linux
+```
+
+`frontend/.env.local`:
+
+```ini
+VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_MODEL=google-ai-mode
+VITE_STATUS_POLL_MS=5000
+VITE_ENABLE_STREAMING=true
+```
+
+These are only the **defaults**.  The API base URL, the model and the
+streaming mode can be changed at runtime in the playground's **Settings**
+panel — the values are stored in `localStorage`, so the backend can be
+repointed without a rebuild.
+
+> The backend must allow the frontend origin.  `http://localhost:5173` and
+> `http://127.0.0.1:5173` are already in the default `CORS_ORIGINS` of
+> `backend/.env.example`; if you changed that list, add the frontend origin
+> there as well.
+
 ---
 
 ## Running the backend
@@ -208,6 +271,57 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Then open <http://127.0.0.1:8000/docs> for the interactive Swagger UI.
+
+---
+
+## Running the frontend
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The playground is served at **<http://127.0.0.1:5173/>**.
+
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Vite dev server with hot reload on port 5173 |
+| `npm run build` | Production build into `frontend/dist` |
+| `npm run preview` | Serve the production build on port 4173 |
+| `npm run lint` | `oxlint` static analysis |
+
+### Using the playground
+
+1. Start the backend and the extension (see above).
+2. Open <http://127.0.0.1:5173/>.
+3. The header shows a compact status indicator — four dots for **Backend**,
+   **Extension**, **AI Mode tab** and **Login**.  Click it for the details.
+   Every value comes from `GET /health` and `GET /api/extension/status`; no
+   status is ever hard coded.
+4. Pick one of the four example cards or type your own prompt, then press
+   **Enter** (or **Shift+Enter** for a new line).
+5. The answer from Google AI Mode streams in and is rendered as Markdown.
+6. **New chat** starts a fresh conversation, **Clear** empties the current
+   one, **Copy** copies an answer, **Retry** re-runs a failed prompt, and the
+   inspector (the panel icon in the header) shows the endpoint, duration,
+   request id, source URL and a ready-to-run cURL command.
+
+**Keyboard shortcuts** — `Ctrl/Cmd + K` focuses the prompt, `/` focuses it
+from anywhere else.
+
+**Sidebar** — search conversations, rename a conversation (pencil icon on
+hover), delete it (bin icon on hover), and collapse the sidebar to a slim icon
+rail with the chevron in the header.  On a phone the sidebar slides in from
+the left.
+
+The conversation history is stored in the browser's `localStorage`, so a
+refresh keeps it.
+
+> The frontend never contains a secret.  If the backend runs with
+> `REQUIRE_API_KEY=true`, open **Settings** in the header and paste the key —
+> it is kept in `sessionStorage` for the current browser session only.  The
+> extension pairing token is never used by this page.
 
 ---
 
@@ -477,8 +591,10 @@ Extension side (stored in `chrome.storage.local`, entered via the popup):
 * **Shared pairing token** — the extension proves its identity with a
   256-bit token.  It is stored in `chrome.storage.local` and never appears in
   any web page context, never in the URL of a REST call and never in a log.
-* **No secret in the frontend** — the popup only ever shows a masked preview
-  (`abc••••xyz`).
+* **No secret in the frontend** — the playground only ever shows a masked
+  preview of an API key (`abc••••xyz`) and never stores the extension pairing
+  token.  An API key entered in the playground lives in `sessionStorage` for
+  the current browser session only.
 * **Constant time comparison** for every token check.
 * **Optional REST API keys** (`X-API-Key` header or `Bearer` token) — the
   backend fails closed if `REQUIRE_API_KEY=true` but no key is configured.
@@ -502,6 +618,12 @@ cd backend
 cd extension
 npm install
 npm test
+
+# Frontend - lint + production build
+cd frontend
+npm install
+npm run lint
+npm run build
 ```
 
 The backend suite uses a **mock extension** so the orchestration can be
@@ -551,6 +673,13 @@ See [`docs/deployment.md`](docs/deployment.md) for the complete checklist.
   with `captcha_detected` and you solve it manually.
 * **Verified against** Google AI Mode (`?udm=50`) and Gemini
   (`gemini.google.com`).  Both surfaces are supported by the same code path.
+* **One browser session at a time.** The backend keeps a single extension
+  connection — a second extension (for example a test double) replaces the
+  first one.  See `backend/scripts/fake_extension.py` for a labelled test
+  double that speaks the extension protocol without a browser.
+* **The playground is a client of the same public API.** It uses no privileged
+  endpoint and no mock: every answer it renders came from the backend, which
+  got it from the browser tab that the extension controls.
 
 ---
 
